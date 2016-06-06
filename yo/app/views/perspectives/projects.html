@@ -1,0 +1,57 @@
+<!--<div class="content-header">-->
+    <h1>Mapping Details</h1>
+    <hr/>
+    Select a project to see a tabular mapping overview.
+<!--</div>-->
+
+<!--<div class="content">-->
+
+	<h3>Projects</h3>
+
+	<form>
+	  <input type="text" ng-model="search">
+	  <p ng-show="search">Filter projects by: {{search}}</p>
+	</form>
+	
+	<table class="table" ng-controller="ProjectsCtrl">
+	<tr>
+		<th>UUID</th>
+		<th>Name</th>
+		<th>Description</th>
+		<th></th>
+	</tr>
+	<tr ng-repeat="project in projects | filter:search">
+	  <td>{{project.uuid}}</td>
+	  <td>{{project.name}}</td>
+	  <td>{{project.description}}</td>
+	  <td><a href class="btn btn-default btn-sm" ng-click="mappingTable.setProject(project);">Details</a></td>
+	</tr>
+	</table>
+	
+	<h3>Tabular Mapping Overview</h3>
+	<div ng-controller="MappingTableCtrl">
+	<div ng-hide="mappingTable.getMappings().length" class="alert alert-info">Select a project</div>
+	<div ng-show="mappingTable.getMappings().length">
+		<table class="table">
+		  <tr ng-repeat="mapping in mappingTable.getMappings()" class="item">
+		    <td>{{mapping.uuid}}</td>
+		    <td>{{mapping.name}}</td>
+		    <td>
+				<div ng-repeat="imapi in mapping.input_attribute_paths" >
+					<!--<span>{{imapi.filter.expression}}</span>--> <!-- this is still a string -- escaped JSON! -->
+					<span>expressions: {{mappingTable.getFilterExpression(imapi)}}</span>
+					
+					<!-- Does not work:-->
+					<!--<div ng-repeat="expression in mappingTable.getFilterExpression(imapi)" >
+						<span>expression: {{expression}}</span>
+					</div>-->
+	
+				</div>
+		    </td>
+		  </tr>
+		</table>
+		<div>{{mappingTable.getMappings().length}} Mappings</div>
+	</div>
+	</div>
+
+<!--</div>-->

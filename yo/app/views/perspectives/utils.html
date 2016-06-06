@@ -1,0 +1,34 @@
+<div class="content-header">
+    <h1>Utils</h1>
+    <hr/>
+</div>
+
+<div class="content">
+
+
+	<h3>Projects</h3>
+	<div class="gridStyle" ng-grid="projectListOptions"></div>
+	
+	<span ng-if="selectedProject.length" class="selected-set-options">
+	    Selected project ({{ selectedProject.0.name }}):
+	
+	    <a href="#/model/{{ selectedProject.0.uuid }}" class="btn btn-primary">Load for modelling</a>
+	    <!--<a ng-click="onProjectExportClick(selectedProject[0])" class="btn btn-default">Export</a>-->
+	</span>
+
+
+
+
+    <h3>Tabular Mapping View</h3>
+    <div class="gridStyle" ng-grid="modelListOptions"></div>
+
+
+
+
+
+
+
+
+    
+
+</div>
