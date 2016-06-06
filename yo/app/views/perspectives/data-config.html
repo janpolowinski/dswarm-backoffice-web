@@ -1,23 +1,11 @@
-<!--
-    Copyright (C) 2013, 2014  SLUB Dresden & Avantgarde Labs GmbH (<code@dswarm.org>)
-     
-    Licensed under the Apache License, Version 2.0 (the "License");
-    you may not use this file except in compliance with the License.
-    You may obtain a copy of the License at
-     
-    http://www.apache.org/licenses/LICENSE-2.0
-     
-    Unless required by applicable law or agreed to in writing, software
-    distributed under the License is distributed on an "AS IS" BASIS,
-    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-    See the License for the specific language governing permissions and
-    limitations under the License.
--->
-<h1>Data Config as {{configType}}</h1>
+<div class="content-header">
+    <h1>Data Config as {{configType}}</h1>
+    <hr/>
+</div>
 
 <div class="alert alert-dismissable alert-danger" ng-if="configError">{{configError}}</div>
 
-<div ng-switch on="configType">
+<div ng-switch on="configType" class="data-config-window">
 
     <div ng-switch-when="csv">
         <dataconfigcsv ></dataconfigcsv>
@@ -27,8 +15,47 @@
         <dataconfigxml ></dataconfigxml>
     </div>
 
+    <div ng-switch-when="json">
+        <dataconfigjson ></dataconfigjson>
+    </div>
+
     <div ng-switch-when="mabxml">
-        <div ng-init="mabxml=true"></div>
+        <dataconfigxml></dataconfigxml>
+    </div>
+
+    <div ng-switch-when="marcxml">
+        <dataconfigxml></dataconfigxml>
+    </div>
+
+    <div ng-switch-when="picaplusxml">
+        <dataconfigxml></dataconfigxml>
+    </div>
+
+    <div ng-switch-when="picaplusxml-global">
+        <dataconfigxml></dataconfigxml>
+    </div>
+
+    <div ng-switch-when="pnx">
+        <dataconfigxml></dataconfigxml>
+    </div>
+
+    <div ng-switch-when="oai-pmh+dce">
+        <dataconfigxml></dataconfigxml>
+    </div>
+
+    <div ng-switch-when="oai-pmh+dct">
+        <dataconfigxml></dataconfigxml>
+    </div>
+
+    <div ng-switch-when="oai-pmh+marcxml">
+        <dataconfigxml></dataconfigxml>
+    </div>
+
+    <div ng-switch-when="sru11+picaplusxml-global">
+        <dataconfigxml></dataconfigxml>
+    </div>
+
+    <div ng-switch-when="oai-pmh+dce+edm">
         <dataconfigxml></dataconfigxml>
     </div>
 

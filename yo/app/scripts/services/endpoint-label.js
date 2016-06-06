@@ -1,12 +1,12 @@
 /**
- * Copyright (C) 2013, 2014  SLUB Dresden & Avantgarde Labs GmbH (<code@dswarm.org>)
- *  
+ * Copyright (C) 2013 – 2016  SLUB Dresden & Avantgarde Labs GmbH (<code@dswarm.org>)
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *  
+ *
  * http://www.apache.org/licenses/LICENSE-2.0
- *  
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -47,10 +47,11 @@ angular.module('dmpApp')
 
         }
 
-        function ask(promptText, helpText, extraLabel, prefill, error) {
+        function ask(promptText, helpText, buttonText, extraLabel, prefill, error) {
             var text = promptText || 'Name this mapping',
-                buttonText = text,
                 help = helpText || 'The name has to be at least 3 characters long';
+
+            buttonText = buttonText || 'Ok';
 
             var labelDefer = $q.defer();
 
@@ -111,7 +112,7 @@ angular.module('dmpApp')
         function askWithKeys(keys) {
             var text = 'Name this mapping',
                 help = 'The name has to be at least 3 characters long',
-                buttonText = text,
+                buttonText = 'Ok',
                 keyDef = (keys && keys.length) ? keys : [],
                 hasKeyDef = !!keyDef.length;
 

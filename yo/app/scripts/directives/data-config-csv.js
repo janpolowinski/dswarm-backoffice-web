@@ -1,12 +1,12 @@
 /**
- * Copyright (C) 2013, 2014  SLUB Dresden & Avantgarde Labs GmbH (<code@dswarm.org>)
- *  
+ * Copyright (C) 2013 – 2016  SLUB Dresden & Avantgarde Labs GmbH (<code@dswarm.org>)
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *  
+ *
  * http://www.apache.org/licenses/LICENSE-2.0
- *  
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -16,10 +16,11 @@
 'use strict';
 
 angular.module('dmpApp')
-    .controller('DataConfigCsvCtrl', function($scope, $routeParams, ngProgress, loDash, ConfigurationResource, DataModelResource, ResourceResource, PubSub) {
+    .controller('DataConfigCsvCtrl', function($scope, $routeParams, ngProgress, loDash, ConfigurationResource, DataModelResource, ResourceResource, PubSub, GUID) {
 
         var resource = null;
-        var dataModel = null;
+
+        $scope.dataModel = {};
 
         var allFields = 'config.parameters',
             allTickableFields = {
@@ -69,6 +70,9 @@ angular.module('dmpApp')
                     unsetPath(field, config);
                 }
             });
+            if(!config.uuid) {
+                config.uuid = GUID.uuid4();
+            }
             return config;
         }
 
@@ -77,7 +81,7 @@ angular.module('dmpApp')
             if (reuseIdentifiers) {
                 $scope.config.name = configuration.name;
                 $scope.config.description = configuration.description;
-                $scope.config.id = configuration.id;
+                $scope.config.uuid = configuration.uuid;
             }
 
             angular.forEach(allTickableFields, function(ticker, param) {
@@ -93,31 +97,28 @@ angular.module('dmpApp')
         function extractFromResource(dataResource) {
             if (dataResource.configurations) {
 
-                var latestConfig = loDash.max(dataResource.configurations, 'id');
+                // TODO: Find a way to determine the latest configuration
+                var latestConfig = dataResource.configurations[0];
 
                 if (angular.isObject(latestConfig)) {
-
                     extractFromConfig(latestConfig);
                 }
             }
         }
 
         if ($scope.mode === 'create' && $routeParams.resourceId) {
-            var resourceId = Math.max(1, +$routeParams.resourceId);
-            $scope.resourceId = resourceId;
+            $scope.resourceId = $routeParams.resourceId;
 
-            ResourceResource.get({ id: resourceId }, function(result) {
+            ResourceResource.get({ id: $scope.resourceId }, function(result) {
                 resource = result;
                 extractFromResource(resource);
                 sendDataConfigUpdatedBroadcast();
             });
         } else if ($scope.mode === 'edit' && $routeParams.dataModelId) {
-            var dataModelId = Math.max(1, +$routeParams.dataModelId);
-
-            DataModelResource.get({id: dataModelId }, function(result) {
-                dataModel = result;
+            DataModelResource.get({id: $routeParams.dataModelId }, function(result) {
+                $scope.dataModel = result;
                 resource = result.data_resource;
-                $scope.resourceId = resource.id;
+                $scope.resourceId = resource.uuid;
 
                 extractFromConfig(result.configuration, true);
                 sendDataConfigUpdatedBroadcast();
@@ -132,19 +133,25 @@ angular.module('dmpApp')
                 if ($scope.mode === 'create' && resource !== null) {
                     var model = {
                         'data_resource': resource,
-                        'configuration': getConfig()
+                        'name': $scope.dataModel.name,
+                        'description': $scope.dataModel.description,
+                        'configuration': getConfig(),
+                        'uuid': GUID.uuid4()
                     };
 
                     DataModelResource.save({}, model, $scope.returnToData, function() {
                         $scope.saving = false;
                         ngProgress.complete();
                     });
-                } else if ($scope.mode === 'edit' && dataModel !== null) {
-                    var configuration = getConfig();
-                    ConfigurationResource.update({id: configuration.id}, configuration, $scope.returnToData, function() {
+                } else if ($scope.mode === 'edit' && $scope.dataModel !== null) {
+
+                    $scope.dataModel.configuration = getConfig();
+
+                    DataModelResource.update({id: $scope.dataModel.uuid}, $scope.dataModel, $scope.returnToData, function() {
                         $scope.saving = false;
                         ngProgress.complete();
                     });
+
                 }
             }
         };
@@ -174,7 +181,7 @@ angular.module('dmpApp')
 
                 PubSub.broadcast('dataConfigUpdated', {
                     config: config,
-                    resourceId: resource.id
+                    resourceId: resource.uuid
                 });
             }
         }

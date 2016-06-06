@@ -1,12 +1,12 @@
 /**
- * Copyright (C) 2013, 2014  SLUB Dresden & Avantgarde Labs GmbH (<code@dswarm.org>)
- *  
+ * Copyright (C) 2013 – 2016  SLUB Dresden & Avantgarde Labs GmbH (<code@dswarm.org>)
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *  
+ *
  * http://www.apache.org/licenses/LICENSE-2.0
- *  
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -16,7 +16,7 @@
 'use strict';
 
 angular.module('dmpApp')
-    .directive('dmpEndpoint', function($rootScope, $modal, $q, endpointLabel, endpointSelector, GUID, jsP, loDash, PubSub) {
+    .directive('dmpEndpoint', function($rootScope, $log, $modal, $q, $timeout, $window, endpointLabel, endpointSelector, GUID, jsP, loDash, PubSub, Util) {
         var sourceScope = null,
             elements = {},
             sourceMap = {},
@@ -60,17 +60,27 @@ angular.module('dmpApp')
                 targetId: scope.guid
             };
 
-            if (scope.projectIsMabXml()) {
+            var inputContentSchema = scope.projectHasContentSchemaForFilterShortCut();
+            if (inputContentSchema) {
                 var iap = getData(elements[sourceScope.guid], sourceScope).path;
-                component.sourceIsMabValue =
+
+                component.filterShortCutCanBeApplied =
                     loDash(scope.project.input_data_model.schema.attribute_paths)
-                        .filter(function(ap) {
-                            return angular.equals(iap, loDash.map(ap.attributes, 'id'));
-                        })
-                        .filter(function(iap) {
-                            return loDash.last(iap.attributes).uri === 'http://www.w3.org/1999/02/22-rdf-syntax-ns#value';
-                        })
-                        .first();
+                            .filter(function(ap) {
+                                return angular.equals(iap, loDash.map(ap.attribute_path.attributes, 'uuid'));
+                            })
+                            .filter(function(iap) {
+
+                                var iapAttributes = iap.attribute_path.attributes;
+
+                                var valueAttributePath = inputContentSchema.value_attribute_path;
+                                var valueAPAttributes = valueAttributePath.attributes;
+
+                                return (loDash.every(iapAttributes, function(iapAttribute, index) {
+                                        return iapAttribute.uri === valueAPAttributes[index].uri;
+                                    }));
+                            })
+                            .first() && inputContentSchema;
             }
 
             connectionParamPromise(component, scope).then(connectComponent, mergeComponent).then(function() {
@@ -95,8 +105,7 @@ angular.module('dmpApp')
             var connectionDefer = $q.defer();
 
             function handleAdditionalKeyDefs(data) {
-
-                if(data.keyDefs.length === 0) {
+                if (!(data && data.keyDefs && data.keyDefs.length)) {
                     return;
                 }
 
@@ -177,6 +186,7 @@ angular.module('dmpApp')
                 newConnection = jsP.connect(sourceEndpoint, targetEndpoint);
 
                 jsP.on('click', onClick);
+                jsP.on('dblclick', onDoubleClick);
 
                 if (component.mappingId) {
                     newConnection.mappingId = component.mappingId;
@@ -199,8 +209,13 @@ angular.module('dmpApp')
 
                 }
 
+                // If a labels is given _and_ it is a string, it is assumed (heuristically),
+                // that the connection already existed, e.g. after closing the
+                // mapping view or opening a work-in-progress project.
+                // In this case, do not fire the open event, as this confuses the
+                // mapping view.
                 if (active) {
-                    activate(newConnection);
+                    activate(newConnection, angular.isString(data));
                 }
 
                 component.connection = newConnection;
@@ -212,16 +227,19 @@ angular.module('dmpApp')
 
             if (label === true) {
                 var labelPromise;
-                if (component.sourceIsMabValue) {
-                    labelPromise = endpointLabel.askWithKeys([{
-                        attribute: 'http://www.ddb.de/professionell/mabxml/mabxml-1.xsd#feld\u001ehttp://www.ddb.de/professionell/mabxml/mabxml-1.xsd#nr',
-                        display: 'nr',
-                        value: ''
-                    }, {
-                        attribute: 'http://www.ddb.de/professionell/mabxml/mabxml-1.xsd#feld\u001ehttp://www.ddb.de/professionell/mabxml/mabxml-1.xsd#ind',
-                        display: 'ind',
-                        value: ''
-                    }]);
+                var inputContentSchema = component.filterShortCutCanBeApplied;
+
+                if (inputContentSchema) {
+                    labelPromise = endpointLabel.askWithKeys(loDash.map(inputContentSchema.key_attribute_paths, function(keyAttributePath){
+                        var keyAPAttributes = keyAttributePath.attributes;
+                        var attribute = Util.buildUriReference(keyAPAttributes);
+                        var display = loDash.last(keyAPAttributes).name;
+                        return {
+                            attribute: attribute,
+                            display: display,
+                            value: ''
+                        };
+                    }));
                 } else {
                     labelPromise = endpointLabel.ask();
                 }
@@ -254,7 +272,7 @@ angular.module('dmpApp')
         function addInputToComponent(newInputComponent, baseComponent) {
 
             if(loDash.isUndefined(newInputComponent.iapId)) {
-                newInputComponent.iapId = (new Date().getTime() + Math.floor(Math.random() * 10)) * -1;
+                newInputComponent.iapId = GUID.uuid4();
             }
 
             newInputComponent.connection.setLabel(' ');
@@ -269,7 +287,7 @@ angular.module('dmpApp')
 
         }
 
-        function activate(connection, dontFire) {
+        function activate(connection, dontFire, click) {
             var conn = endpointSelector.activate(connection);
             if (conn && !dontFire) {
 
@@ -285,7 +303,8 @@ angular.module('dmpApp')
                     inputAttributePath: source,
                     outputAttributePath: target,
                     keyDefs: conn.keyDefs || [],
-                    additionalInput: getDatas(conn.additionalInput)
+                    additionalInput: getDatas(conn.additionalInput),
+                    click: click
                 });
             }
         }
@@ -297,9 +316,11 @@ angular.module('dmpApp')
 
             if (scp.data) {
                 data = {
-                    id: scp.data.id,
+                    uuid: scp.data.uuid,
                     name: scp.data.name,
-                    path: realPath([], scp)
+                    // TODO: [@zazi] 'path' could maybe be deprecated/removed, if it is not utilised somewhere else anymore
+                    path: realPath([], scp),
+                    ap_uuid: scp.data._$path_id
                 };
             } else {
                 data = c;
@@ -329,7 +350,7 @@ angular.module('dmpApp')
             }
 
             var lastSegment = segments[0],
-                currentSegment = scp.data && scp.data.id;
+                currentSegment = scp.data && scp.data.uuid;
 
             if (!currentSegment || currentSegment === lastSegment) {
                 return realPath(segments, scp.$parent);
@@ -341,29 +362,56 @@ angular.module('dmpApp')
 
         // === Callbacks ===
 
+        var waitForDoubleClick = true;
+        var doubleClickSpeed = 300;
+        var delayedClick;
+
+        function cancelDelayedClick(event) {
+            $timeout.cancel(delayedClick);
+            waitForDoubleClick = true;
+            delayedClick = null;
+            event.target.style.cursor = 'pointer';
+        }
+
         function onClick(component, event) {
             if (component.scope === 'schema') {
-                switch (event.target.tagName) {
-
-                    case 'DIV':
-                    case 'path': // fall through
-                        activate(component);
-                        break;
+                if (waitForDoubleClick) {
+                    waitForDoubleClick = false;
+                    event.target.style.cursor = 'progress';
+                    delayedClick = $timeout(function() {
+                        if (!waitForDoubleClick) {
+                            cancelDelayedClick(event);
+                            executeOnClick(component, event);
+                        }
+                    }, doubleClickSpeed);
                 }
             }
         }
 
-        function onProjectDiscarded() {
-            endpointSelector.foreach(function(component) {
+        function executeOnClick(component, event) {
+            switch (event.target.tagName) {
+                case 'DIV':
+                case 'path': // fall through
+                    activate(component, false, true);
+                    break;
+            }
+        }
 
-                removePlumbs(component);
-
-                angular.forEach(component.additionalInput, function(additionalInput) {
-                    removePlumbs(additionalInput.connection);
+        function onDoubleClick(component, event) {
+            if (component.scope === 'schema' && event.target.tagName === 'DIV') {
+                cancelDelayedClick(event);
+                var labelPromise = endpointLabel.ask('Rename this mapping', undefined, undefined, undefined, {label: endpointLabel.get(component)});
+                labelPromise.then(function(label) {
+                    $log.info('new label', label);
+                    if (label.label) {
+                        endpointLabel.set(component, label.label);
+                    }
                 });
-            });
-            endpointSelector.reset();
+            }
+        }
 
+        function onProjectDiscarded() {
+            clear();
             init();
         }
 
@@ -376,9 +424,22 @@ angular.module('dmpApp')
             jsP.detachAll($(connection.source));
         }
 
+        function clear() {
+
+            endpointSelector.foreach(function(component) {
+
+                removePlumbs(component);
+
+                angular.forEach(component.additionalInput, function(additionalInput) {
+                    removePlumbs(additionalInput.connection);
+                });
+            });
+            endpointSelector.reset();
+        }
+
         function onPaintPlumbs(mappings) {
 
-            endpointSelector.reset();
+            clear();
 
             angular.forEach(mappings, function(mapping) {
 
@@ -386,8 +447,8 @@ angular.module('dmpApp')
 
                 angular.forEach(mapping.input_attribute_paths, function(input_attribute_path) {
 
-                    var inputScopes = sourceMap[input_attribute_path.attribute_path.id] || [],
-                        outputScopes = targetMap[mapping.output_attribute_path.attribute_path.id] || [];
+                    var inputScopes = sourceMap[input_attribute_path.attribute_path.uuid] || [],
+                        outputScopes = targetMap[mapping.output_attribute_path.attribute_path.uuid] || [];
 
                     angular.forEach(inputScopes, function(inputScope) {
                         angular.forEach(outputScopes, function(outputScope) {
@@ -396,8 +457,8 @@ angular.module('dmpApp')
                                 scope: 'schema',
                                 sourceId: inputScope.scope.guid,
                                 targetId: outputScope.scope.guid,
-                                mappingId: mapping.id,
-                                iapId: input_attribute_path.id
+                                mappingId: mapping.uuid,
+                                iapId: input_attribute_path.uuid
                             };
 
                             if (!additionalInputPath) {

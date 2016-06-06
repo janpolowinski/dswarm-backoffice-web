@@ -1,12 +1,12 @@
 /**
- * Copyright (C) 2013, 2014  SLUB Dresden & Avantgarde Labs GmbH (<code@dswarm.org>)
- *  
+ * Copyright (C) 2013 – 2016  SLUB Dresden & Avantgarde Labs GmbH (<code@dswarm.org>)
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *  
+ *
  * http://www.apache.org/licenses/LICENSE-2.0
- *  
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -46,31 +46,63 @@ angular.module('dmpApp').
          * @param editableTitle {Boolean=}
          * @returns {*}
          */
-        function fromDomainSchema(domainSchema, editableTitle) {
+        function fromDomainSchema(domainSchema, editableTitle, isInFilterTree, filterTypeObj) {
+
+            var extra = {$show: false, editableTitle: !!editableTitle, '$wasRendered': false, isInFilterTree: !!isInFilterTree};
+
+            if(filterTypeObj) {
+
+                extra.filterTypes = filterTypeObj.filterTypes;
+                extra.filterType = filterTypeObj.defaultFilterType;
+            }
 
             var base = {name: domainSchema.name || ''},
-                extra = {$show: false, editableTitle: !!editableTitle, '$wasRendered': false},
                 paths = prepare(domainSchema),
                 cache = generateTreeCache(paths);
 
             return createSchemaItem(cache.children, cache.order, base, extra);
         }
 
-        /**
+         /**
          * return a list of all attribute path's attributes (a list of list of attributes, if you will)
          * @param schema
          * @returns {*}
          */
         function prepare(schema) {
 
-            var originalPaths = schema.attribute_paths;
+            var originalPaths = schema.attribute_paths,
+                preparedPaths = [];
 
-            return loDash.map(originalPaths, function(attributePath) {
+            loDash.map(originalPaths, function(attributePath) {
 
-                return loDash.forEach(attributePath.attributes, function(attribute) {
-                    attribute._$path_id = attributePath.id;
+                var basePaths = attributePath.attribute_path.attributes;
+
+                loDash.forEach(basePaths, function(basePath) {
+                    basePath._$path_id = attributePath.attribute_path.uuid;
+                    basePath._$isSubSchema = false;
                 });
+
+                preparedPaths.push(angular.copy(basePaths));
+
+                if(attributePath.sub_schema) {
+
+                    loDash.forEach(attributePath.sub_schema.attribute_paths, function(subSchemaAttributePath) {
+
+                        var subSchemaPaths = subSchemaAttributePath.attribute_path.attributes;
+
+                        loDash.forEach(subSchemaPaths, function(subSchemaPath) {
+                            subSchemaPath._$path_id = subSchemaAttributePath.attribute_path.uuid;
+                            subSchemaPath._$isSubSchema = true;
+                        });
+
+                        preparedPaths.push(basePaths.concat(subSchemaPaths));
+                    });
+
+                }
+
             });
+
+            return preparedPaths;
         }
 
         /**
@@ -113,7 +145,7 @@ angular.module('dmpApp').
                 if (!loDash.has(cache, head.uri)) {
 
                     cache[head.uri] = elem = {
-                        id: head.id,
+                        uuid: head.uuid,
                         uri: head.uri,
                         name: head.name,
                         order: [],
@@ -125,6 +157,8 @@ angular.module('dmpApp').
                 }
                 if (tail.length === 0) {
                     elem._$path_id = head._$path_id;
+                    elem._$isSubSchema = head._$isSubSchema;
+
                 }
 
                 addToCache(elem.children, elem.order, tail);

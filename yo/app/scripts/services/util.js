@@ -1,12 +1,12 @@
 /**
- * Copyright (C) 2013, 2014  SLUB Dresden & Avantgarde Labs GmbH (<code@dswarm.org>)
- *  
+ * Copyright (C) 2013 – 2016  SLUB Dresden & Avantgarde Labs GmbH (<code@dswarm.org>)
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *  
+ *
  * http://www.apache.org/licenses/LICENSE-2.0
- *  
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -38,10 +38,10 @@ angular.module('dmpApp')
 /**
  * Provide utility functions for miscellaneous operations
  */
-    .factory('Util', function(loDash, $q, $timeout) {
+    .factory('Util', function(loDash, $q, $timeout, GUID) {
 
         function latestBy(list, property) {
-            var prop = property || 'id';
+            var prop = property || 'uuid';
             return loDash.max(list, prop);
         }
 
@@ -201,6 +201,11 @@ angular.module('dmpApp')
 
             loDash.map(mappings, function(mapping, idx) {
 
+                if(loDash.isUndefined(mapping.transformation)) {
+
+                    return;
+                }
+
                 loDash.forEach(mapping.transformation.parameter_mappings, function(parameter_mapping, key) {
 
                     if(key.indexOf('TRANSFORMATION_OUTPUT_VARIABLE') === -1) {
@@ -218,6 +223,9 @@ angular.module('dmpApp')
                             inputString[inputStringIndex] = newKey;
 
                             component.parameter_mappings.inputString = inputString.join(',');
+                            if(component.parameter_mappings.value) {
+                                component.parameter_mappings.value = component.parameter_mappings.value.replace(key, newKey);
+                            }
 
                         });
 
@@ -235,24 +243,30 @@ angular.module('dmpApp')
         /**
          * Generates a new data model
          * @param {string} name name of that model, used for Data model and schema object
-         * @returns {{name: string, description: string, schema: {name: *, id: number, attribute_paths: Array, record_class: {}}, id: number}}
+         * @returns {{name: string, description: string, schema: {name: *, uuid: number, attribute_paths: Array, record_class: {}}, uuid: number}}
          */
         function buildNewDataModel(name) {
-
-            var randId = (new Date().getTime() + Math.floor(Math.random() * 1001)) * -1;
 
             return {
                 'name': name + ' Data Model',
                 'description': name + ' Data Model',
                 'schema': {
                     'name': name,
-                    'id': randId,
-                    'attribute_paths': [],
-                    'record_class': {}
+                    'uuid': GUID.uuid4()
                 },
-                'id': randId+1
+                'uuid': GUID.uuid4()
             };
 
+        }
+
+        /**
+         * returns eigther id or generates a new one
+         * @param {string=} optId The id to return
+         * @returns {*}
+         */
+        function getId(optId) {
+            return angular.isDefined(optId) ? optId
+                : GUID.uuid4();
         }
 
         return {
@@ -265,7 +279,8 @@ angular.module('dmpApp')
             buildUriReference: buildUriReference,
             buildVariableName: buildVariableName,
             ensureUniqueParameterMappingVars: ensureUniqueParameterMappingVars,
-            buildNewDataModel: buildNewDataModel
+            buildNewDataModel: buildNewDataModel,
+            getId: getId
         };
     })
 /**
@@ -317,4 +332,31 @@ angular.module('dmpApp')
         return {
             'uuid4': guid
         };
+    })
+
+/**
+ * Provide utility to show alerts
+ */
+    .factory('showAlert', function($timeout) {
+
+        function show(scope, type, message, timeout) {
+            var alter = {
+                type: type,
+                discard: false,
+                save: false,
+                msg: message
+            };
+            scope.alerts.push(alter);
+            $timeout(function() {
+                var alterIndex = scope.alerts.indexOf(alter);
+                if (alterIndex !== -1) {
+                    scope.closeAlert(alterIndex);
+                }
+            }, timeout || 3000);
+        }
+
+        return {
+            'show': show
+        };
+
     });

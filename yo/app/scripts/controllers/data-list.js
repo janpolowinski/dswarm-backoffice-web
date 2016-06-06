@@ -1,12 +1,12 @@
 /**
- * Copyright (C) 2013, 2014  SLUB Dresden & Avantgarde Labs GmbH (<code@dswarm.org>)
- *  
+ * Copyright (C) 2013 – 2016  SLUB Dresden & Avantgarde Labs GmbH (<code@dswarm.org>)
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *  
+ *
  * http://www.apache.org/licenses/LICENSE-2.0
- *  
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -16,7 +16,7 @@
 'use strict';
 
 angular.module('dmpApp')
-    .controller('DataListCtrl', function($scope, $routeParams, DataModelResource, ResourceResource, ProjectResource, flashMessage, fileDownload, loDash, Neo4jEndpoint) {
+    .controller('DataListCtrl', function($scope, $routeParams, $modal, DataModelResource, ResourceResource, ProjectResource, flashMessage, fileDownload, loDash, Neo4jEndpoint, GUID) {
 
         $scope.files = [];
         $scope.models = [];
@@ -29,19 +29,21 @@ angular.module('dmpApp')
 
         $scope.onUseForNewProjectClick = function(model, newProject) {
 
-            var inputDataModel = model[0];
-            delete inputDataModel['storage_type'];
+            DataModelResource.get({ id : model[0].uuid }, function(inputDataModel) {
 
-            var project = {
-                'input_data_model': inputDataModel,
-                'name': newProject.name,
-                'description': newProject.description
-            };
+                var project = {
+                    'input_data_model': inputDataModel,
+                    'name': newProject.name,
+                    'description': newProject.description,
+                    'uuid': GUID.uuid4()
+                };
 
-            ProjectResource.save({}, project, function() {
-                $scope.updateGridData();
-                newProject.name = '';
-                newProject.description = '';
+                ProjectResource.save({}, project, function() {
+                    $scope.updateGridData();
+                    newProject.name = '';
+                    newProject.description = '';
+                });
+
             });
 
         };
@@ -64,15 +66,18 @@ angular.module('dmpApp')
         var resources = {
             Resource: {
                 resource: ResourceResource,
-                grid: $scope.selectedSet
+                grid: $scope.selectedSet,
+                templateUrl: 'views/controllers/confirm-remove-resource.html'
             },
             DataModel: {
                 resource: DataModelResource,
-                grid: $scope.selectedModel
+                grid: $scope.selectedModel,
+                templateUrl: 'views/controllers/confirm-remove-resource.html'
             },
             Project: {
                 resource: ProjectResource,
-                grid: $scope.selectedProject
+                grid: $scope.selectedProject,
+                templateUrl: 'views/controllers/confirm-remove-resource.html'
             }
         };
 
@@ -80,12 +85,23 @@ angular.module('dmpApp')
             var resource = resources[item].resource;
             var grid = resources[item].grid;
             var what = item + ' ' + obj.name;
-            resource.remove({id: obj.id}, {},
-                successHandler(grid, what), errorHandler(what));
+            var templateUrl = resources[item].templateUrl;
+
+            var modalInstance = $modal.open({
+                templateUrl: templateUrl
+            });
+
+            modalInstance.result.then(function() {
+
+                resource.remove({id: obj.uuid}, {},
+                    successHandler(grid, what), errorHandler(what));
+
+            });
+
         }
 
-        $scope.deleteResource = loDash.partial(deleteItem, 'Resource');
-        $scope.deleteDataModel = loDash.partial(deleteItem, 'DataModel');
+        $scope.onResourceDeleteClick = loDash.partial(deleteItem, 'Resource');
+        $scope.onDataModelDeleteClick = loDash.partial(deleteItem, 'DataModel');
         $scope.onProjectDeleteClick = loDash.partial(deleteItem, 'Project');
 
         $scope.onProjectExportClick = function(project) {
@@ -101,34 +117,28 @@ angular.module('dmpApp')
 
         $scope.updateGridData = function() {
 
-            ResourceResource.query(function(results) {
+            ResourceResource.query({ format : 'short' }, function(results) {
 
                 $scope.files = results;
 
             }, function() {
-                $scope.files = '';
+                $scope.files = [];
             });
 
-            DataModelResource.query(function(results) {
+            DataModelResource.query({ format : 'medium' }, function(results) {
 
                 $scope.models = loDash.filter(results, 'data_resource');
 
-                $scope.models = loDash.map($scope.models, function(result) {
-
-                    result['storage_type'] = result.configuration && result.configuration.parameters['storage_type'];
-
-                    return result;
-                });
             }, function() {
-                $scope.models = '';
+                $scope.models = [];
             });
 
-            ProjectResource.query(function(projects) {
+            ProjectResource.query({ format : 'short' }, function(projects) {
 
                 $scope.projects = projects;
 
             }, function() {
-                $scope.projects = '';
+                $scope.projects = [];
             });
 
         };
@@ -150,7 +160,7 @@ angular.module('dmpApp')
             columnDefs: [
                 {field: 'name', displayName: 'Name'},
                 {field: 'description', displayName: 'Description '},
-                {field: 'storage_type', displayName: 'Configured Data Storage Type'}
+                {field: 'configuration.parameters.storage_type', displayName: 'Configured Data Storage Type'}
             ],
             enableColumnResize: false,
             selectedItems: $scope.selectedModel,
@@ -170,5 +180,33 @@ angular.module('dmpApp')
 
         $scope.updateGridData();
 
+        function openCopyOrMigrateMappings() {
 
+            var modalInstance = $modal.open({
+                templateUrl: 'views/directives/copy-or-migrate-mappings.html',
+                controller: 'CopyOrMigrateMappingsCtrl',
+                windowClass: 'wide',
+                resolve: {
+                    dataModels: function() {
+                        return $scope.models;
+                    },
+                    projects: function() {
+                        return $scope.projects;
+                    }
+                }
+            });
+
+            modalInstance.result.then(function(reason) {
+
+                if (reason && reason.newProjectsHasBeenCreated) {
+
+                    $scope.updateGridData();
+                }
+            });
+        }
+
+        $scope.onCopyOrMigrateMappingsClick = function() {
+
+            openCopyOrMigrateMappings();
+        };
     });

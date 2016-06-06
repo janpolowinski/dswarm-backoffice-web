@@ -1,12 +1,12 @@
 /**
- * Copyright (C) 2013, 2014  SLUB Dresden & Avantgarde Labs GmbH (<code@dswarm.org>)
- *  
+ * Copyright (C) 2013 – 2016  SLUB Dresden & Avantgarde Labs GmbH (<code@dswarm.org>)
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *  
+ *
  * http://www.apache.org/licenses/LICENSE-2.0
- *  
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -16,23 +16,24 @@
 'use strict';
 
 angular.module('dmpApp')
-    .controller('FilterCtrl', function($scope, $http, $q, $modalInstance, loDash, gdmParser, schemaParser, filterHelper, PubSub, mapping, attributePathId, filters) {
+    .controller('FilterCtrl', function($scope, $http, $q, $modal, $modalInstance, loDash, gdmParser, schemaParser, filterHelper, PubSub, filterObject, attributePathId, filters) {
 
         $scope.internalName = 'Filter Widget';
 
-        $scope.activeMapping = mapping;
+        $scope.activeFilterObject = filterObject;
         $scope.filters = filters;
 
         $scope.dataSource = {};
         $scope.dataSchema = {};
         $scope.dataLoaded = false;
+        $scope.isRemoveFilter = false;
 
         var originalSource = {};
 
         // deactivated until further notice
         /* jshint ignore:start */
         function restrictSchema(schema, pathId) {
-            var exactPath = loDash.find(schema.attribute_paths, { id: pathId });
+            var exactPath = loDash.find(schema.attribute_paths, { uuid: pathId });
 
             if (angular.isDefined(exactPath)) {
                 var exactAttributes = exactPath.attributes;
@@ -41,7 +42,7 @@ angular.module('dmpApp')
 
                     return loDash.every(exactAttributes, function(a, i) {
 
-                        return ap.attributes[i] && ap.attributes[i].id === a.id;
+                        return ap.attributes[i] && ap.attributes[i].uuid === a.uuid;
                     });
                 });
             }
@@ -76,8 +77,27 @@ angular.module('dmpApp')
 
         $scope.addFilter = function() {
 
+            var filterTypes = [
+                {id: 'NUMERIC', name: 'numeric filter'},
+                {id: 'REGEXP', name: 'regular expression'},
+                {id: 'EQUALS', name: 'equals'},
+                {id: 'NOTEQUALS', name: 'not-equals'}
+            ];
+
+            var defaultFilterType = filterTypes[1];
+
+            var filterTypeObj = {
+                filterTypes: filterTypes,
+                defaultFilterType: defaultFilterType
+            };
+
+            var inFilterTree = true;
+            var editableTitle = true;
+
+            var filter = schemaParser.fromDomainSchema($scope.dataSchema, editableTitle, inFilterTree, filterTypeObj);
+
             filters.push({
-                filter: schemaParser.fromDomainSchema($scope.dataSchema, true),
+                filter: filter,
                 inputFilters: [],
                 name: 'new filter'
             });
@@ -89,7 +109,44 @@ angular.module('dmpApp')
         };
 
         $scope.save = function() {
-            $modalInstance.close();
+
+            var result = {
+                removeFilter: $scope.isRemoveFilter
+            };
+
+            $modalInstance.close(result);
+        };
+
+        $scope.removeMappingInput = function() {
+
+            var modalInstance = $modal.open({
+                templateUrl: 'views/controllers/confirm-remove-mappinginput.html'
+            });
+
+            modalInstance.result.then(function() {
+
+                var result = {
+                    removeMappingInput: true
+                };
+
+                $modalInstance.close(result);
+            });
+        };
+
+        $scope.removeFilter = function() {
+
+            var modalInstance = $modal.open({
+                templateUrl: 'views/controllers/confirm-remove-filter.html'
+            });
+
+            modalInstance.result.then(function() {
+
+                filters = [];
+                $scope.filters = [];
+                $scope.isRemoveFilter = true;
+
+                $scope.update();
+            });
         };
 
         PubSub.ask($scope, 'getLoadData', {}, 'returnLoadData', function(args) {

@@ -4,7 +4,7 @@ angular.module('mockedConfiguration', [])
     .value('mockConfigurationComponentInternalJSON', {
         name: 'constant',
         description: 'Sets literal value to a constant.',
-        id: 4,
+        uuid: 4,
         function_description: {
             name: 'constant',
             dsl: 'metafacture',
@@ -27,7 +27,7 @@ angular.module('mockedConfiguration', [])
         "function": {
             "name": "constant",
             "description": "Sets literal value to a constant.",
-            "id": 4,
+            "uuid": 4,
             "function_description": {
                 "name": "constant",
                 "dsl": "metafacture",
@@ -45,7 +45,7 @@ angular.module('mockedConfiguration', [])
             "type": "Function"
         },
         "name": "component1402495666169",
-        "id": null,
+        "uuid": null,
         "output_components": [],
         "input_components": [],
         "description": "{\"x\":\"status\",\"y\":0}",
@@ -58,7 +58,7 @@ angular.module('mockedConfiguration', [])
         "function": {
             "name": "constant",
             "description": "Sets literal value to a constant.",
-            "id": 4,
+            "uuid": 4,
             "function_description": {
                 "name": "constant",
                 "dsl": "metafacture",
@@ -76,7 +76,7 @@ angular.module('mockedConfiguration', [])
             "type": "Function"
         },
         "name": "component1402495666169",
-        "id": -1402495665792,
+        "uuid": -1402495665792,
         "output_components": [],
         "input_components": [],
         "description": "{\"x\":\"status\",\"y\":0}",
@@ -89,7 +89,7 @@ angular.module('mockedConfiguration', [])
         "function": {
             "name": "concat",
             "description": "Collects all received values and concatenates them on record end.",
-            "id": 23,
+            "uuid": 23,
             "function_description": {
                 "name": "concat",
                 "dsl": "metafacture",
@@ -120,7 +120,7 @@ angular.module('mockedConfiguration', [])
             "type": "Function"
         },
         "name": "component1410197625118",
-        "id": -1410197625240,
+        "uuid": -1410197625240,
         "output_components": [],
         "input_components": [],
         "description": "{\"x\":\"dataset__-1410185900851\",\"y\":0}",
@@ -133,7 +133,7 @@ angular.module('mockedConfiguration', [])
         "function": {
             "name": "concat",
             "description": "Collects all received values and concatenates them on record end.",
-            "id": 23,
+            "uuid": 23,
             "function_description": {
                 "name": "concat",
                 "dsl": "metafacture",
@@ -145,12 +145,12 @@ angular.module('mockedConfiguration', [])
                         "data": [
                             {
                                 "text": "dataset",
-                                "id": "dataset__-1410185900851",
+                                "uuid": "dataset__-1410185900851",
                                 "$$hashKey": "0IJ"
                             },
                             {
                                 "text": "definition",
-                                "id": "definition__-1410185903886",
+                                "uuid": "definition__-1410185903886",
                                 "$$hashKey": "0IK"
                             }
                         ],
@@ -183,12 +183,12 @@ angular.module('mockedConfiguration', [])
                     "data": [
                         {
                             "text": "dataset",
-                            "id": "dataset__-1410185900851",
+                            "uuid": "dataset__-1410185900851",
                             "$$hashKey": "0IJ"
                         },
                         {
                             "text": "definition",
-                            "id": "definition__-1410185903886",
+                            "uuid": "definition__-1410185903886",
                             "$$hashKey": "0IK"
                         }
                     ],
@@ -199,12 +199,57 @@ angular.module('mockedConfiguration', [])
             "type": "Function"
         },
         "name": "component1410197625118",
-        "id": -1410197625240,
+        "uuid": -1410197625240,
         "output_components": [],
         "input_components": [],
         "description": "{\"x\":\"dataset__-1410185900851\",\"y\":0}",
         "parameter_mappings": {
             "delimiter": ",",
             "inputString": "dataset__-1410185900851,definition__-1410185903886"
+        }
+    })
+    .value("mockConfigurationMulti3JSON", {
+        "function": {
+            "uuid": "Function-e4c6c5af-45a5-4530-9a5e-61edf253fb1e",
+            "name": "lookup",
+            "description": "Performs a table lookup",
+            "function_description": {
+                "name": "lookup",
+                "dsl": "metafacture",
+                "reference": "lookup",
+                "description": "Performs a table lookup",
+                "parameters": {
+                    "lookupString": {
+                        "type": "lookupmap"
+                    },
+                    "default": {
+                        "type": "text",
+                        "optional": true,
+                        "description": "Value used if no corresponding key is found."
+                    }
+                }
+            },
+            "parameters": [
+                "lookupString",
+                "default"
+            ],
+            "type": "Function"
+        },
+        "name": "componentd5fc57a7-12bf-819c-9498-18873451e32f",
+        "uuid": "27e7ee46-dd62-a128-0060-c5833d96ec7e",
+        "output_components": [
+            {
+                "uuid": "d592144d-900d-d21f-2e4b-f57b62a22791"
+            }
+        ],
+        "input_components": [
+            {
+                "uuid": "f261188e-20de-8860-0515-95a4cee43ea2"
+            }
+        ],
+        "description": "{\"x\":\"definition__e2f99c1a-85e1-d759-931e-b5dd1b80a792\",\"y\":1}",
+        "parameter_mappings": {
+            "default": "Blabla",
+            "inputString": "componentf6646343-6ad2-c5c9-cbff-86aadebe4a17"
         }
     });

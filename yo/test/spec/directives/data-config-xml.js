@@ -7,7 +7,8 @@ describe('Directive: DataConfigXml', function () {
     var elementHtml = '<dataconfigxml></dataconfigxml>';
 
     var routeParams = {
-        resourceId: 42
+        resourceId: 42,
+        configType: 'xml'
     };
 
     beforeEach(module('dmpApp', 'mockedDataConfig'));
@@ -30,7 +31,7 @@ describe('Directive: DataConfigXml', function () {
 
         $httpBackend.whenGET('/dmp/resources/42').respond($jsonResponseGet);
         $httpBackend.whenGET('/dmp/resources/1').respond({});
-        $httpBackend.whenPOST('/dmp/datamodels').respond($jsonResponse);
+        $httpBackend.whenPOST('/dmp/datamodels?enhanceDataResource=true').respond($jsonResponse);
 
 
         routeParams.resourceId = 42;
@@ -61,8 +62,6 @@ describe('Directive: DataConfigXml', function () {
         expect(elScope.resourceId).toBe(1);
         expect(elScope.selectedSet).toEqual([]);
         expect(elScope.config).toEqual({
-            name: 'xml',
-            description: 'xml with id 1',
             parameters: {
                 storage_type: 'xml'
             }
@@ -72,6 +71,7 @@ describe('Directive: DataConfigXml', function () {
 
     it('should request the specified data Resource', function() {
         scope.mode = 'create';
+        scope.mabxml = false;
 
         $httpBackend.expectGET('/dmp/resources/42');
 
@@ -81,7 +81,7 @@ describe('Directive: DataConfigXml', function () {
         var elScope = element.scope();
         expect(elScope.resourceId).toBe(42);
         expect(elScope.selectedSet).toEqual([{
-            id: 1337,
+            uuid: 1337,
             name: 'foo',
             description: 'bar'
         }]);
@@ -91,7 +91,7 @@ describe('Directive: DataConfigXml', function () {
             description: 'bar baz',
             parameters: {
                 schema_file: {
-                    id: 1337,
+                    uuid: 1337,
                     name: 'foo',
                     description: 'bar'
                 },
@@ -116,24 +116,12 @@ describe('Directive: DataConfigXml', function () {
 
     it('should change location after save', function() {
         scope.mode = 'create';
+        scope.mabxml = false;
 
         $httpBackend.expectGET('/dmp/resources/42');
 
         scope.$digest();
         $httpBackend.flush();
-
-        var config = $jsonResponseGet.configurations[0];
-
-        $httpBackend.expectPOST('/dmp/datamodels', {
-            data_resource: $jsonResponseGet,
-            name: $jsonResponseGet.name,
-            description: $jsonResponseGet.description,
-            configuration: {
-                name: config.name,
-                description: config.description,
-                parameters: config.parameters
-            }
-        });
 
         element.scope().onSaveClick();
 

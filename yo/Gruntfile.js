@@ -2,7 +2,9 @@
 'use strict';
 
 var SERVER_PORT = 9999;
-var OPEN_TO_THE_WORLD = false;
+var OPEN_TO_THE_WORLD = process.env.DMP_OPEN_TO_THE_WORLD || false;
+var WORLD_IP = process.env.DMP_WORLD_IP || '0.0.0.0';
+var BACKEND_URL = process.env.DMP_BACKEND_URL || 'http://127.0.0.1:8087/dmp/';
 
 // # Globbing
 // for performance reasons we're only matching one level down:
@@ -58,17 +60,13 @@ module.exports = function(grunt) {
             options: {
                 holder: 'SLUB Dresden & Avantgarde Labs GmbH',
                 email: 'code@dswarm.org',
-                year: '2013, 2014'
+                year: '2013 – 2016'
             },
             check: {
                 files: [{
                     expand: true,
                     cwd: '<%= yeoman.app %>/scripts/',
                     src: ['**/*.js']
-                }, {
-                    expand: true,
-                    cwd: '<%= yeoman.app %>/views/',
-                    src: ['**/*.html']
                 }, {
                     expand: true,
                     cwd: '<%= yeoman.app %>/styles/',
@@ -80,10 +78,6 @@ module.exports = function(grunt) {
                     expand: true,
                     cwd: '<%= yeoman.app %>/scripts/',
                     src: ['**/*.js']
-                }, {
-                    expand: true,
-                    cwd: '<%= yeoman.app %>/views/',
-                    src: ['**/*.html']
                 }, {
                     expand: true,
                     cwd: '<%= yeoman.app %>/styles/',
@@ -110,7 +104,7 @@ module.exports = function(grunt) {
                 tasks: ['newer:copy:styles', 'autoprefixer']
             },
             less: {
-                files: ['<%= yeoman.app %>/styles/{,*/}*.less'],
+                files: ['<%= yeoman.app %>/styles/**/*.less'],
                 tasks: ['less']
             },
             gruntfile: {
@@ -147,8 +141,8 @@ module.exports = function(grunt) {
             development: {
                 constants: {
                     ServiceUrls: {
-                        backend: 'http://127.0.0.1:8087/dmp/',
-                        neo: 'http://127.0.0.1:8087/dmp/'
+                        backend: BACKEND_URL,
+                        neo: BACKEND_URL
                     }
                 }
             },
@@ -180,8 +174,8 @@ module.exports = function(grunt) {
                 },
                 constants: {
                     ServiceUrls: {
-                        backend: 'http://127.0.0.1:8087/dmp/',
-                        neo: 'http://127.0.0.1:8087/dmp/'
+                        backend: BACKEND_URL,
+                        neo: BACKEND_URL
                     }
                 }
             },
@@ -228,7 +222,7 @@ module.exports = function(grunt) {
         connect: {
             options: {
                 port: SERVER_PORT,
-                hostname: OPEN_TO_THE_WORLD ? '0.0.0.0' : 'localhost',
+                hostname: OPEN_TO_THE_WORLD ? WORLD_IP : 'localhost',
                 livereload: 35729
             },
             livereload: {
@@ -520,6 +514,10 @@ module.exports = function(grunt) {
                 dest: '.tmp/styles/',
                 src: '{,*/}*.css'
             },
+            config: {
+                src: ['<%= yeoman.app %>/config.js'],
+                dest: '<%= yeoman.dist %>/config.js'
+            },
             rev: {
                 files: [
                     {
@@ -672,6 +670,11 @@ module.exports = function(grunt) {
         'ngconstant:' + grunt.config.get('stage').name
     ]);
 
+    grunt.registerTask('updateConfigAndCopy', [
+        'updateConfig',
+        'copy:config'
+    ]);
+
     grunt.registerTask('printConfig', 'print the complete configuration', function() {
         grunt.log.writeln(JSON.stringify(grunt.config(), null, 2));
     });
@@ -727,7 +730,7 @@ module.exports = function(grunt) {
             'bowerInstall',
             'copyright:ensure',
             'useminPrepare',
-            'updateConfig',
+            (target === 'local' ? 'updateConfigAndCopy' : 'updateConfig'),
             'copy:styles',
             'imagemin',
             'svgmin',

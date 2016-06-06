@@ -1,12 +1,12 @@
 /**
- * Copyright (C) 2013, 2014  SLUB Dresden & Avantgarde Labs GmbH (<code@dswarm.org>)
- *  
+ * Copyright (C) 2013 – 2016  SLUB Dresden & Avantgarde Labs GmbH (<code@dswarm.org>)
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *  
+ *
  * http://www.apache.org/licenses/LICENSE-2.0
- *  
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -16,11 +16,19 @@
 'use strict';
 
 angular.module('dmpApp')
-    .controller('ConfigurationCtrl', function($scope, $modal, $timeout, PubSub, loDash, Util) {
+    .controller('ConfigurationCtrl', function($scope, $modal, $timeout, PubSub, loDash, Util, ApiEndpoint, fileUpload, showAlert) {
 
         $scope.internalName = 'Configuration Widget';
 
         $scope.component = null;
+
+        $scope.selectedTab = 1;
+
+        $scope.data = {
+            file : {}
+        };
+
+        $scope.delimiter = ',';
 
         var componentId = null,
             waitToSendChange = null,
@@ -37,13 +45,29 @@ angular.module('dmpApp')
             };
         };
 
+        $scope.isMultiDisplayVars = function(component) {
+            var multiDisplayVars = ['combine', 'all'];
+            return loDash.contains(multiDisplayVars, component.name);
+        };
+
         function setComponent(providedComponent) {
 
             angular.forEach(providedComponent.parameter_mappings, function(value, key) {
 
                 if (typeof providedComponent.function.function_description.parameters !== 'undefined' &&
                     typeof providedComponent.function.function_description.parameters[key] !== 'undefined') {
-                    providedComponent.function.function_description.parameters[key].data = value;
+
+                    if((providedComponent.function.function_description.parameters[key].type === 'lookuplist') || (providedComponent.function.function_description.parameters[key].type === 'lookupmap')) {
+
+                        providedComponent.function.function_description.parameters[key].data = (value) ? angular.fromJson(value) : {};
+
+                        if(providedComponent.function.function_description.parameters[key].type === 'lookuplist') {
+                            providedComponent.function.function_description.parameters[key].data = providedComponent.function.function_description.parameters[key].data.join();
+                        }
+
+                    } else {
+                        providedComponent.function.function_description.parameters[key].data = value;
+                    }
                 }
 
             });
@@ -54,9 +78,14 @@ angular.module('dmpApp')
                 var parameterItems = loDash.map(inputString, function(part) {
                     return {
                         text: getComponentNameByVarName(part),
-                        id: part
+                        uuid: part
                     };
                 });
+
+        $scope.data = {};
+                if(!providedComponent.function.function_description.parameters) {
+                    providedComponent.function.function_description.parameters = [];
+                }
 
                 providedComponent.function.function_description.parameters['inputStringSorting'] = {
                     type: 'sortable',
@@ -145,10 +174,10 @@ angular.module('dmpApp')
 
             var providedComponent = args.component;
 
-            if (componentId !== null && providedComponent.id === componentId) {
+            if (componentId !== null && providedComponent.uuid === componentId) {
                 mergeComponents(providedComponent);
             } else {
-                componentId = providedComponent.id;
+                componentId = providedComponent.uuid;
                 $scope.component = setComponent(providedComponent);
             }
         });
@@ -162,14 +191,31 @@ angular.module('dmpApp')
             }
 
             var params = {
-                id: componentId,
+                uuid: componentId,
                 parameter_mappings: {}
             };
 
             angular.forEach($scope.component.parameters, function(paramDef) {
-                var param = paramDef.key;
-                if (angular.isDefined(paramDef.data)) {
-                    params.parameter_mappings[param] = paramDef.data;
+
+                if(angular.isDefined(paramDef.type))  {
+
+                    var param = paramDef.key;
+                    var data = paramDef.data;
+
+                    if(paramDef.type === 'lookuplist') {
+                       data = data.split(',');
+                    }
+
+                    if((paramDef.type === 'lookuplist') || (paramDef.type === 'lookupmap') ){
+
+                        data = JSON.stringify(data);
+
+                    }
+
+                    if (angular.isDefined(data)) {
+                        params.parameter_mappings[param] = data;
+                    }
+
                 }
             });
 
@@ -182,6 +228,7 @@ angular.module('dmpApp')
         $scope.onCancelClick = function() {
             $scope.component = null;
             componentId = null;
+            PubSub.broadcast('configurationClosed', null);
         };
 
         /**
@@ -245,6 +292,120 @@ angular.module('dmpApp')
 
             });
 
+        };
+
+        /**
+         * Called when data needs to be added to a lookupmap
+         * @param {object} parameter - The parameter set
+         */
+        $scope.newData = function(parameter) {
+
+            if(!parameter.data) { parameter.data = {}; }
+
+            var modalInstance = $modal.open({
+                templateUrl: 'views/controllers/ask-data.html'
+            });
+
+            modalInstance.result.then(function(result) {
+
+                parameter.data[result[0]] = result[1];
+
+            });
+
+        };
+
+        /**
+         * Removes data from lookupmap
+         * @param {object} parameter - The parameter set
+         * @param {string} key - Key to be removed
+         */
+        $scope.deleteData = function(parameter, key) {
+
+            var modalInstance = $modal.open({
+                templateUrl: 'views/controllers/confirm-remove-data.html'
+            });
+
+            modalInstance.result.then(function() {
+                delete parameter.data[key];
+            });
+
+        };
+
+        /**
+         * Checks if this component should display Tabs
+         * @returns {boolean}
+         */
+        $scope.componentHasTabs = function() {
+
+            var hasTabs = false;
+
+            if($scope.componentHasLookupMap()) { hasTabs = true; }
+
+            return hasTabs;
+
+        };
+
+        /**
+         * Checks if this component has a lookupmap parameter
+         * @returns {boolean}
+         */
+        $scope.componentHasLookupMap = function() {
+
+            var component = null;
+
+            if($scope.component) {
+                component = loDash.find($scope.component.parameters, {'type' : 'lookupmap'});
+            }
+
+            if($scope.component && component && component.type && component.type.length > 0) { return true; }
+            else { return false; }
+
+        };
+
+        /**
+         * Changes the current used tab
+         * @param {int} tab - Target tab index
+         */
+        $scope.selectTab = function(tab) {
+            $scope.selectedTab = tab;
+        };
+
+
+        /**
+         * Posts a file
+         */
+        $scope.uploadData = function() {
+
+            // Form scope gets somehow lost.
+            // This is a qnd to retrieve the relevant form value.
+            $scope.delimiter = $('#delimiter').val();
+
+            var f = $scope.data.file;
+            if (angular.isDefined(f)) {
+                fileUpload({
+                    file: f,
+                    params : {
+                        column_delimiter: $scope.delimiter
+                    },
+                    fileUrl: ApiEndpoint + 'lookup/read'
+                }).then(function(result) {
+
+                    var parameter = loDash.find($scope.component.parameters, {'type' : 'lookupmap'});
+
+                    parameter.data = result;
+
+                    $scope.selectedTab = 1;
+
+                }).catch(function(resp) {
+
+                    var msg = angular.fromJson(resp.msg);
+
+                    showAlert.show($scope, 'danger',  msg.error, 5000);
+
+                    console.log(resp);
+
+                });
+            }
         };
 
         $scope.$watch('component', function() {

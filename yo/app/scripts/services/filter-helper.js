@@ -1,12 +1,12 @@
 /**
- * Copyright (C) 2013, 2014  SLUB Dresden & Avantgarde Labs GmbH (<code@dswarm.org>)
- *  
+ * Copyright (C) 2013 – 2016  SLUB Dresden & Avantgarde Labs GmbH (<code@dswarm.org>)
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *  
+ *
  * http://www.apache.org/licenses/LICENSE-2.0
- *  
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -72,10 +72,18 @@ angular.module('dmpApp').
             }
 
             function apply(value, key) {
-                var pathUris = key.split('\u001E');
+                var pathUris = key.split(pathDelimiter);
 
                 loop(schema.children || [], pathUris, function(child) {
-                    child.title = value;
+                    child.title = value.expression || '';
+
+                    var filterType;
+                    if (value.type) {
+                         filterType = loDash.find(child.filterTypes, function(filterType) {
+                            return filterType.id === value.type;
+                        });
+                    }
+                    child.filterType = filterType || child.filterTypes[1];
                 });
             }
 
@@ -129,15 +137,21 @@ angular.module('dmpApp').
                     if (!loDash.isEmpty(paths)) {
                         return paths;
                     }
-                } else {
-                    if (d.title) {
-                        return {
-                            title: d.title,
-                            name: d.name,
-                            path: p.concat([d.name]).join(pathDelimiter),
-                            apId: d._$path_id
-                        };
+                } else if (d.title) {
+
+                    var filterType = 'REGEXP';
+
+                    if (d.filterType && d.filterType.id) {
+                        filterType = d.filterType.id;
                     }
+
+                    return {
+                        title: d.title,
+                        name: d.name,
+                        filterType: filterType,
+                        path: p.concat([d.name]).join(pathDelimiter),
+                        apId: d._$path_id
+                    };
                 }
             }
 
@@ -224,9 +238,62 @@ angular.module('dmpApp').
             return matches;
         }
 
+        function prepareFilters(filters, project) {
+
+            return loDash.flatten(loDash.map(filters, function (filter) {
+                //noinspection FunctionWithInconsistentReturnsJS
+                return Util.collect(filter.inputFilters, function (f) {
+
+                    var path = loDash.find(project.input_data_model.schema.attribute_paths, function (ap) {
+                        return ap.attribute_path.uuid === f.apId;
+                    });
+                    if (path) {
+                        path = Util.buildUriReference(path.attribute_path.attributes);
+                        // path = loDash.pluck(path.attributes, 'uri').join('&amp;#30;');
+                        return [path, f.title, f.filterType];
+                    }
+                });
+            }), true);
+        }
+
+        function buildFilterExpression(filters) {
+
+            return loDash.map(filters, function (filter) {
+
+                var filterExpression = {};
+                var filterExpressionBody = {
+                    type: filter[2] || 'REGEXP',
+                    expression: filter[1]
+                };
+
+                var filterAttributePath = filter[0];
+
+                filterExpression[filterAttributePath] = filterExpressionBody;
+
+                return filterExpression;
+            });
+        }
+
+        function parseFilterDefinitions(expression, name, schema) {
+
+            var filter = applyFilter(schema, expression),
+                workFilter = {
+                    filter: filter,
+                    name: name
+                };
+
+            buildFilterInputs([workFilter]);
+
+            // all existing are merged into one filter now, this might be good or not?
+            return [workFilter];
+        }
+
         return {
             annotateMatches: annotateMatches,
             applyFilter: applyFilter,
-            buildFilterInputs: buildFilterInputs
+            buildFilterInputs: buildFilterInputs,
+            prepareFilters: prepareFilters,
+            buildFilterExpression: buildFilterExpression,
+            parseFilterDefinitions: parseFilterDefinitions
         };
     });

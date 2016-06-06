@@ -1,12 +1,12 @@
 /**
- * Copyright (C) 2013, 2014  SLUB Dresden & Avantgarde Labs GmbH (<code@dswarm.org>)
- *  
+ * Copyright (C) 2013 – 2016  SLUB Dresden & Avantgarde Labs GmbH (<code@dswarm.org>)
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *  
+ *
  * http://www.apache.org/licenses/LICENSE-2.0
- *  
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -40,13 +40,25 @@ angular.module('dmpApp')
 
                 $scope.records = loDash.map(transformation, function(t) {
                     return {
-                        id: t['record_id'],
-                        data: mapToSchema(t['record_data'], schema)
+                        id: t['__record_id'],
+                        data: mapToSchema(t['__record_data'], schema)
                     };
                 });
             } else {
                 $scope.data = mapToSchema(transformation, schema);
             }
+        });
+
+        function reset() {
+
+            $scope.selectedTab = 0;
+            $scope.records = null;
+            $scope.data = null;
+        }
+
+        PubSub.subscribe($scope, 'inputDataChanged', function() {
+
+            reset();
         });
 
     })

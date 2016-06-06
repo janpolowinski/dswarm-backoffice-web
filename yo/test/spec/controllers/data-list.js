@@ -1,31 +1,46 @@
 'use strict';
 
 describe('Controller: DataListCtrl', function () {
-    var $httpBackend, $rootScope, scope, dataListCtrl;
+    var $httpBackend, $rootScope, scope, dataListCtrl,
+        fakeModal, $modal;
 
     beforeEach(module('dmpApp'));
 
     var resources = [
-        { id: 1, name: 'rs01'}
+        { uuid: 1, name: 'rs01'}
     ];
 
     var models = [
-        {id: 1, name: 'dm01', data_resource: {id: 1}, configuration: {id: 1, parameters: {storage_type: 'csv'}}}
+        { uuid: 1, name: 'dm01', data_resource: { uuid: 1 }, configuration: { uuid: 1, parameters: { storage_type: 'csv' } } }
     ];
 
     var projects = [
         {
-            id: 3,
+            uuid: 3,
             name: "Foo",
             description: "Bar",
             mappings: [],
             functions: [],
-            input_data_model: {id: 1, name: 'dm01', data_resource: {id: 1}, configuration: {id: 1, parameters: {storage_type: 'csv'}}}
+            input_data_model: { uuid: 1, name: 'dm01', data_resource: { uuid: 1 }, configuration: { uuid: 1, parameters: {storage_type: 'csv' } } }
         }
     ];
 
     beforeEach(module(function ($provide) {
         $provide.value('ApiEndpoint', '/dmp/');
+    }));
+
+    beforeEach(inject(function ($q, _$modal_) {
+        $modal = _$modal_;
+
+        fakeModal = (function() {
+            var defer = $q.defer();
+
+            return {
+                result: defer.promise,
+                close: defer.resolve,
+                dismiss: defer.reject
+            };
+        }());
     }));
 
 
@@ -35,9 +50,11 @@ describe('Controller: DataListCtrl', function () {
 
         scope = $rootScope.$new();
 
-        $httpBackend.when('GET', '/dmp/resources').respond(resources);
-        $httpBackend.when('GET', '/dmp/datamodels').respond(models);
-        $httpBackend.when('GET', '/dmp/projects').respond(projects);
+        $httpBackend.when('GET', '/dmp/resources?format=short').respond(resources);
+        $httpBackend.when('GET', '/dmp/datamodels?format=medium').respond(models);
+        $httpBackend.when('GET', '/dmp/datamodels/1').respond(models[0]);
+        $httpBackend.when('GET', '/dmp/projects?format=short').respond(projects);
+
 
         var $controller = $injector.get('$controller');
 
@@ -50,8 +67,8 @@ describe('Controller: DataListCtrl', function () {
 
     it('should load the resource data objects', function () {
         var ctrl;
-        $httpBackend.expectGET('/dmp/resources');
-        $httpBackend.expectGET('/dmp/projects');
+        $httpBackend.expectGET('/dmp/resources?format=short');
+        $httpBackend.expectGET('/dmp/projects?format=short');
         scope.$apply(function () {
             ctrl = dataListCtrl();
         });
@@ -78,8 +95,8 @@ describe('Controller: DataListCtrl', function () {
     it('should generate a correct new project call', inject(function (ProjectResource) {
 
         var ctrl;
-        $httpBackend.expectGET('/dmp/resources');
-        $httpBackend.expectGET('/dmp/projects');
+        $httpBackend.expectGET('/dmp/resources?format=short');
+        $httpBackend.expectGET('/dmp/projects?format=short');
         scope.$apply(function () {
             ctrl = dataListCtrl();
         });
@@ -88,12 +105,16 @@ describe('Controller: DataListCtrl', function () {
         spyOn(ProjectResource, "save");
 
         scope.onUseForNewProjectClick([
-            { id: 2}
+            { uuid: 1}
         ], { name: 'Foo', description: 'Bar'});
+
+        $httpBackend.expectGET('/dmp/datamodels/1');
+
+        $httpBackend.flush();
 
         var callArgs = ProjectResource.save.calls.mostRecent().args;
 
-        expect(callArgs[1].input_data_model.id).toBe(2);
+        expect(callArgs[1].input_data_model.uuid).toBe(1);
         expect(callArgs[1].name).toBe('Foo');
         expect(callArgs[1].description).toBe('Bar');
 
@@ -103,8 +124,8 @@ describe('Controller: DataListCtrl', function () {
 
         var ctrl;
 
-        $httpBackend.expectGET('/dmp/resources');
-        $httpBackend.expectGET('/dmp/projects');
+        $httpBackend.expectGET('/dmp/resources?format=short');
+        $httpBackend.expectGET('/dmp/projects?format=short');
 
         scope.$apply(function () {
             ctrl = dataListCtrl();
@@ -115,8 +136,101 @@ describe('Controller: DataListCtrl', function () {
 
         scope.updateGridData();
 
-        expect(scope.projects[0].id).toBe(3);
+        expect(scope.projects[0].uuid).toBe(3);
 
     });
+
+    it('should remove project on onProjectDeleteClick', inject(function() {
+
+        var ctrl;
+
+        $httpBackend.expectGET('/dmp/resources?format=short');
+        $httpBackend.expectGET('/dmp/projects?format=short');
+
+        scope.$apply(function () {
+            ctrl = dataListCtrl();
+        });
+        $httpBackend.flush();
+
+        $httpBackend.expectDELETE('/dmp/projects').respond(201, '');
+
+        scope.updateGridData();
+
+        expect(scope.projects[0].uuid).toBe(3);
+
+        spyOn($modal, 'open').and.returnValue(fakeModal);
+
+        scope.onProjectDeleteClick([
+            { uuid: '3' }
+        ]);
+
+        fakeModal.close();
+        scope.$digest();
+
+        $httpBackend.flush();
+
+    }));
+
+    it('should remove resource on onProjectDeleteClick', inject(function() {
+
+        var ctrl;
+
+        $httpBackend.expectGET('/dmp/resources?format=short');
+        $httpBackend.expectGET('/dmp/projects?format=short');
+
+        scope.$apply(function () {
+            ctrl = dataListCtrl();
+        });
+        $httpBackend.flush();
+
+        $httpBackend.expectDELETE('/dmp/resources').respond(201, '');
+
+        scope.updateGridData();
+
+        expect(scope.projects[0].uuid).toBe(3);
+
+        spyOn($modal, 'open').and.returnValue(fakeModal);
+
+        scope.onResourceDeleteClick([
+            { uuid: '3' }
+        ]);
+
+        fakeModal.close();
+        scope.$digest();
+
+        $httpBackend.flush();
+
+    }));
+
+    it('should remove project on onProjectDeleteClick', inject(function() {
+
+        var ctrl;
+
+        $httpBackend.expectGET('/dmp/resources?format=short');
+        $httpBackend.expectGET('/dmp/projects?format=short');
+
+        scope.$apply(function () {
+            ctrl = dataListCtrl();
+        });
+        $httpBackend.flush();
+
+        $httpBackend.expectDELETE('/dmp/datamodels').respond(201, '');
+
+        scope.updateGridData();
+
+        expect(scope.projects[0].uuid).toBe(3);
+
+        spyOn($modal, 'open').and.returnValue(fakeModal);
+
+        scope.onDataModelDeleteClick([
+            { uuid: '3' }
+        ]);
+
+        fakeModal.close();
+        scope.$digest();
+
+        $httpBackend.flush();
+
+    }));
 
 });

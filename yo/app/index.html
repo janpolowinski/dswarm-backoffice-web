@@ -15,6 +15,7 @@
     <!-- build:css styles/vendor.css -->
     <!-- bower:css -->
     <link rel="stylesheet" href="components/angular-grid/ng-grid.css" />
+    <link rel="stylesheet" href="components/perfect-scrollbar/src/perfect-scrollbar.css" />
     <link rel="stylesheet" href="components/font-awesome/css/font-awesome.css" />
     <link rel="stylesheet" href="components/angular-ui-tree/dist/angular-ui-tree.min.css" />
     <!-- endbower -->
@@ -27,9 +28,9 @@
 
         <!-- build:css({.tmp,app}) styles/main.css -->
         <link rel="stylesheet" href="styles/main.css">
-        <link rel="stylesheet" href="styles/dswarm.css">
         <!-- endbuild -->
 
+    <link rel="stylesheet" href="fonts/dswarm/styles.css" />
     <link rel="icon" href="../../favicon.ico">
 
   </head>
@@ -63,14 +64,9 @@
             <div class="navbar-collapse collapse">
                 <ul class="nav navbar-nav navbar-right dswarm-tools-navbar">
                     <li class="dropdown">
-                        <a href="#" class="dropdown-toggle" data-toggle="dropdown">Account <b class="caret"></b></a>
+                        <a href="#" class="dropdown-toggle" data-toggle="dropdown">Help <b class="caret"></b></a>
                         <ul class="dropdown-menu" role="menu">
-                            <li><a href="#">Sharing Settings</a></li>
-                            <li><a href="#">Personal</a></li>
-                            <li><a href="#">Password</a></li>
-                            <li role="presentation" class="divider"></li>
-                            <li><a href="#">Logout</a></li>
-
+                            <li><a href="https://github.com/dswarm/dswarm-documentation/wiki" target="_blank">Wiki</a></li>
                         </ul>
                     </li>
                 </ul>
@@ -79,9 +75,7 @@
     </div>
 
     <div class="wrap">
-        <div class="content">
-            <div ng-view></div>
-        </div>
+        <div ng-view></div>
     </div>
 
     <div class="dswarm-status-footer">
@@ -94,9 +88,8 @@
                 <div class="status-circle"
                      heartbeat interval="5000" endpoint="'_ping'"
                      expected="'pong'"></div></a></li>
-            <li class="dswarm-footer-stats-message">Awesome! All Systems running without any problems.</li>
         </ul>
-        <p class="pull-right"><a href="#">D:SWARM</a> is brought to you by <a href="#">SLUB Dresden</a> and <a href="#">Avantgarde Labs</a>. Version: <span class="pull-right" app-version></span></p>
+        <p class="pull-right"><a href="http://www.dswarm.org/" target="_blank">D:SWARM</a> is brought to you by <a href="http://www.slub-dresden.de/" target="_blank">SLUB Dresden</a> and <a href="http://www.avantgarde-labs.de/" target="_blank">Avantgarde Labs</a>. Version: <span class="pull-right" app-version></span></p>
     </div>
 
     <!-- build:js scripts/vendor.js -->
@@ -106,13 +99,15 @@
     <script src="components/angular-bootstrap/ui-bootstrap-tpls.js"></script>
     <script src="components/angular-cookies/angular-cookies.js"></script>
     <script src="components/angular-grid/build/ng-grid.js"></script>
-    <script src="components/angular-local-storage/angular-local-storage.js"></script>
+    <script src="components/angular-local-storage/dist/angular-local-storage.js"></script>
     <script src="components/angular-resource/angular-resource.js"></script>
     <script src="components/angular-route/angular-route.js"></script>
     <script src="components/angular-sanitize/angular-sanitize.js"></script>
     <script src="components/angular-ui-utils/ui-utils.js"></script>
     <script src="components/jquery-ui/ui/jquery-ui.js"></script>
     <script src="components/angular-ui-sortable/sortable.js"></script>
+    <script src="components/perfect-scrollbar/src/perfect-scrollbar.js"></script>
+    <script src="components/angular-perfect-scrollbar/src/angular-perfect-scrollbar.js"></script>
     <script src="components/humanize/humanize.js"></script>
     <script src="components/jsPlumb/dist/js/jquery.jsPlumb-1.5.5.js"></script>
     <script src="components/lodash/dist/lodash.compat.js"></script>
@@ -131,10 +126,13 @@
         <script src="scripts/services/gdm-parser.js"></script>
         <script src="scripts/services/filter-helper.js"></script>
         <script src="scripts/services/js-plumb.js"></script>
+        <script src="scripts/services/transformation-arrows.js"></script>
         <script src="scripts/services/pubsub.js"></script>
         <script src="scripts/services/util.js"></script>
+        <script src="scripts/services/convert-units.js"></script>
         <script src="scripts/services/file-download.js"></script>
         <script src="scripts/services/file-upload.js"></script>
+        <script src="scripts/services/data-config-text.js"></script>
         <script src="scripts/resources/configurations.js"></script>
         <script src="scripts/resources/datamodels.js"></script>
         <script src="scripts/resources/file.js"></script>
@@ -166,11 +164,15 @@
         <script src="scripts/directives/filter.js"></script>
         <script src="scripts/directives/filterdata.js"></script>
         <script src="scripts/directives/filterselector.js"></script>
+        <script src="scripts/directives/copy-or-migrate-mappings.js"></script>
+        <script src="scripts/directives/select-records.js"></script>
+        <script src="scripts/directives/selected-records-data.js"></script>
         <script src="scripts/directives/mapping-component.js"></script>
         <script src="scripts/directives/mapping-component-config.js"></script>
         <script src="scripts/directives/data-config-preview-csv.js"></script>
-        <script src="scripts/directives/data-config-preview-xml.js"></script>
+        <script src="scripts/directives/data-config-preview-text.js"></script>
         <script src="scripts/directives/data-config-csv.js"></script>
+        <script src="scripts/directives/data-config-json.js"></script>
         <script src="scripts/directives/data-config-xml.js"></script>
         <script src="scripts/directives/data-config-schema.js"></script>
         <script src="scripts/directives/schema-list.js"></script>
@@ -183,31 +185,25 @@
         <script src="scripts/controllers/import.js"></script>
         <script src="scripts/controllers/join.js"></script>
         <script src="scripts/controllers/export.js"></script>
+        <script src="scripts/controllers/show-tree-data.js"></script>
         <script src="scripts/services/endpoint-selector.js"></script>
         <script src="scripts/services/endpoint-label.js"></script>
         <script src="scripts/services/js-plumb-connector.js"></script>
         <script src="scripts/services/normalize-key.js"></script>
         <script src="scripts/services/id-incrementer.js"></script>
+        <script src="scripts/services/variable-name-creator.js"></script>
         <script src="scripts/directives/flash-messages.js"></script>
         <script src="scripts/services/flash-message.js"></script>
         <script src="scripts/bootstrap.js"></script>
         <!-- endbuild -->
 
         <script>
-            // Include the UserVoice JavaScript SDK (only needed once on a page)
-            UserVoice=window.UserVoice||[];(function(){var uv=document.createElement('script');uv.type='text/javascript';uv.async=true;uv.src='//widget.uservoice.com/ffX8f30bHHlRct1plfAePQ.js';var s=document.getElementsByTagName('script')[0];s.parentNode.insertBefore(uv,s)})();
-
-            UserVoice.push(['set', {
-                accent_color: '#808283',
-                trigger_color: 'white',
-                trigger_background_color: '#e23a39'
-            }]);
-
-            // Add default trigger to the bottom-right corner of the window:
-            UserVoice.push(['addTrigger', { mode: 'contact', trigger_position: 'bottom-right' }]);
-
-            // Autoprompt for Satisfaction and SmartVote (only displayed under certain conditions)
-            UserVoice.push(['autoprompt', {}]);
+            jQuery.ajax({
+                url: "https://jira.slub-dresden.de/s/d41d8cd98f00b204e9800998ecf8427e/en_US4osl5z-1988229788/6258/22/1.4.7/_/download/batch/com.atlassian.jira.collector.plugin.jira-issue-collector-plugin:issuecollector-embededjs/com.atlassian.jira.collector.plugin.jira-issue-collector-plugin:issuecollector-embededjs.js?collectorId=354646d9",
+                type: "get",
+                cache: true,
+                dataType: "script"
+            });
         </script>
 
 
