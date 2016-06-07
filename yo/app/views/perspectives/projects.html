@@ -39,13 +39,29 @@
 		    <td>
 				<div ng-repeat="imapi in mapping.input_attribute_paths" >
 					<!--<span>{{imapi.filter.expression}}</span>--> <!-- this is still a string -- escaped JSON! -->
-					<span>expressions: {{mappingTable.getFilterExpression(imapi)}}</span>
 					
 					<!-- Does not work:-->
-					<!--<div ng-repeat="expression in mappingTable.getFilterExpression(imapi)" >
-						<span>expression: {{expression}}</span>
-					</div>-->
-	
+					
+					<div ng-show="imapi.filter!=null && imapi.filter.expression!=null">
+					
+	<!-- 					<div>filter: {{imapi.filter}}</div> -->
+	<!-- 					<div>expression(s): {{imapi.filter.expression}}</div> -->
+					
+						<div ng-repeat="expression in imapi.filter.expression" >
+	<!-- 						<div>expression: {{expression}}</div> -->
+							
+							<div ng-repeat="(id,fieldrestriction) in expression" >
+							<div>field: {{id}}</div>
+							<div>type: {{fieldrestriction.type}}</div>
+							<div>value: {{fieldrestriction.expression}}</div>
+							<div>value (old): {{fieldrestriction}}</div>
+							
+						</div>
+	<!-- 					filter expressions exist -->
+	<!-- 					<div>expressions: {{mappingTable.getFilterExpression(imapi)}}</div> -->
+	<!-- 					<div>expression 1: {{mappingTable.getFilterExpression(imapi)[0]}}</div> -->
+					</div>
+
 				</div>
 		    </td>
 		  </tr>
