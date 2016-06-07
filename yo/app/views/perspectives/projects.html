@@ -48,13 +48,25 @@
 	<!-- 					<div>expression(s): {{imapi.filter.expression}}</div> -->
 					
 						<div ng-repeat="expression in imapi.filter.expression" >
-	<!-- 						<div>expression: {{expression}}</div> -->
+	<!-- 					<div>expression: {{expression}}</div> -->
 							
 							<div ng-repeat="(id,fieldrestriction) in expression" >
-							<div>field: {{id}}</div>
-							<div>type: {{fieldrestriction.type}}</div>
-							<div>value: {{fieldrestriction.expression}}</div>
-							<div>value (old): {{fieldrestriction}}</div>
+							
+								<div ng-show="fieldrestriction.type" title="{{fieldrestriction.type}}" style="cursor:help">
+									{{mappingTable.getAbbreviatedPath(id)}}: <span style="font-weight:bold">{{fieldrestriction.expression}}</span>
+								</div>
+								<div ng-hide="fieldrestriction.type">
+									{{mappingTable.getAbbreviatedPath(id)}}: <span style="font-weight:bold">{{fieldrestriction}} </span>
+										<span style="color:red"> (old plain filter-expression format used!)</span>
+								</div>
+								
+								<!-- DEBUGGING:
+								<div>field: {{id}}</div>
+								<div>splitted: {{mappingTable.getAbbreviatedPath(id)}}</div>
+								<div>type: {{fieldrestriction.type}}</div> 
+								<div>value: {{fieldrestriction.expression}}</div>
+								<div>value (old): {{fieldrestriction}}</div>
+								-->
 							
 						</div>
 	<!-- 					filter expressions exist -->

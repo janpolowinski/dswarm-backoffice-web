@@ -63,39 +63,25 @@ angular.module('dmpApp')
     	  var expression = null;
     	  if (imapi.filter!=null && imapi.filter.expression!=null) {
     		  expressionString = imapi.filter.expression;
-//    		  expression = {"type" : "test", "expression" : "expression"};
     		  expression = jQuery.parseJSON(expressionString);
-//    		  alert(expression.type);
     	  }
     	  return expression;
       },
-
-      getTagValueFromFilter: function(expressionString) {
-    		if (null!=expressionString) {
-    		    var re = /^.*#tag":"([^"]*)"\}.*/; 
-    		    var matches = expressionString.match(re);
-    	        if (matches == null) return "";
-    	        else return matches[1];
-    		} else return "";
-       },
-    	
-       getCodeValueFromFilter: function (expressionString) {
-    		if (null!=expressionString) {
-    		    var re = /^.*#code":"([^"]*)"\}.*/; 
-    		    var matches = expressionString.match(re);
-    	        if (matches == null) return "";
-    	        else return matches[1];
-    		} else return "";
-    	},
-
-    	getIDValueFromFilter: function (expressionString) {
-    		if (null!=expressionString) {
-    		    var re = /^.*#id":"([^"]*)"\}.*/; 
-    		    var matches = expressionString.match(re);
-    	        if (matches != null) return " !!!!!!!!!!!!! ID was used somewhere in Filter! Intentionally? !!!!!!!!!!!!!!!!";
-    	        else return "";
-    		} else return "";
-    	}
+       
+       getAbbreviatedPath: function(path) {
+		   if (path==null || path=="") {
+			   return "";
+		   } else {
+			   var pathElements = path.split('\u001E');
+			   var abbrevPathElements = [];
+			   for (let element of pathElements) {
+				   if (element.indexOf("#")+1!=-1) {
+					   abbrevPathElements.push(element.substr(element.lastIndexOf("#")+1,element.length));
+				   }
+			   }
+			   return abbrevPathElements.join("/");
+		   }
+       }
 
     };
   })
