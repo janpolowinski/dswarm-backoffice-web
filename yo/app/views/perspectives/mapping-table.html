@@ -1,0 +1,91 @@
+<!--<div class="content-header">-->
+    <h1>Mapping Details</h1>
+    <hr/>
+    Select a project to see a tabular mapping overview.
+<!--</div>-->
+
+<!--<div class="content">-->
+
+	<h3>Projects</h3>
+
+	<form>
+	  <input type="text" ng-model="search">
+	  <p ng-show="search">Filter projects by: {{search}}</p>
+	</form>
+	
+	<table class="table" ng-controller="ProjectsCtrl">
+	<tr>
+		<th>UUID</th>
+		<th>Name</th>
+		<th>Description</th>
+		<th></th>
+	</tr>
+	<tr ng-repeat="project in projects | filter:search">
+	  <td>{{project.uuid}}</td>
+	  <td>{{project.name}}</td>
+	  <td>{{project.description}}</td>
+	  <td><a href class="btn btn-default btn-sm" ng-click="mappingTable.setProject(project);">Details</a></td>
+	</tr>
+	</table>
+	
+	<h3>Tabular Mapping Overview</h3>
+	<div ng-controller="MappingTableCtrl">
+	<div ng-hide="mappingTable.getMappings().length" class="alert alert-info">Select a project</div>
+	<div ng-show="mappingTable.getMappings().length">
+		<table class="table">
+		<tr>
+<!--		<th>UUID</th> -->
+			<th>Name</th>
+			<th>Inputs</th>
+			<th>Output</th>
+		</tr>
+		  <tr ng-repeat="mapping in mappingTable.getMappings()" class="item">
+<!--		<td>{{mapping.uuid}}</td> -->
+		    <td>{{mapping.name}}</td>
+		    <!-- INPUT FIELDS -->
+		    <td>
+				<div ng-repeat="imapi in mapping.input_attribute_paths" >
+				
+					<span ng-repeat="attribute in imapi.attribute_path.attributes" style="font-weight:bold">/{{attribute.name}}</span>
+					<span ng-hide="imapi.filter==null"> with filters: </span>
+					<!--<span>{{imapi.filter.expression}}</span>--> <!-- this is still a string -- escaped JSON! -->
+					
+						<div ng-show="imapi.filter!=null && imapi.filter.expression!=null">	
+							<div ng-repeat="expression in imapi.filter.expression" >
+								
+<!-- 							<div>expression: {{expression}}</div> -->
+								
+								<div ng-repeat="(id,fieldrestriction) in expression" >
+								
+									<div ng-show="fieldrestriction.type" title="{{fieldrestriction.type}}" style="cursor:help">
+										/{{mappingTable.getAbbreviatedPath(id)}}: <span style="font-weight:bold">{{fieldrestriction.expression}}</span>
+									</div>
+									<div ng-hide="fieldrestriction.type" title="untyped" style="cursor:help">
+										/{{mappingTable.getAbbreviatedPath(id)}}: <span style="font-weight:bold">{{fieldrestriction}}</span>
+										<span style="color:red"> (old plain filter-expression format used!)</span>
+									</div>
+									
+									<!-- DEBUGGING:
+									<div>field: {{id}}</div>
+									<div>splitted: {{mappingTable.getAbbreviatedPath(id)}}</div>
+									<div>type: {{fieldrestriction.type}}</div> 
+									<div>value: {{fieldrestriction.expression}}</div>
+									<div>value (old): {{fieldrestriction}}</div>
+									-->
+						</div>
+					</div>
+				</div>
+		    </td>
+		    <!-- OUTPUT FIELDS -->
+		    <td>
+		    	<span ng-repeat="attribute in mapping.output_attribute_path.attribute_path.attributes" >
+		    		/{{attribute.name}}
+		    	</span>
+		    </td>
+		  </tr>
+		</table>
+		<div>{{mappingTable.getMappings().length}} Mappings</div>
+	</div>
+	</div>
+
+<!--</div>-->

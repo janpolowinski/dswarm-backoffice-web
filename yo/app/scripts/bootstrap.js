@@ -67,6 +67,12 @@ angular.module('dmpApp')
                 templateUrl: 'views/perspectives/export.html',
                 controller: 'ExportCtrl'
             })
+            .when('/mappingtable', {
+                title: 'Mapping Table',
+                slug: 'mappingtable',
+                templateUrl: 'views/perspectives/mapping-table.html',
+                controller: 'ProjectsCtrl'
+            })
 
             .otherwise({redirectTo: '/data/'});
 
